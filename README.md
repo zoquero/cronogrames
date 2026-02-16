@@ -29,8 +29,9 @@ Permet crear cronogrames complexos de forma ràpida i automàtica a partir de pa
 
 ## Exemple d'ús
 
+Aquesta comanda ha generat la imatge d'exemple:
 ```
-python3 programa.py   --titol "Cronograma EP/SP"   --cicles 5   --nom "Clk" --tipus rellotge   --nom "D[2]" --tipus estable --valors 0X1Z1   --nom "D[1]" --tipus estable --valors 11B10   --nom "D[0]" --tipus estable --valors 1X1Z0   --sortida sortida.png
+python3 ./cronogrames.py --titol "Cronograma purament demostratiu"   --cicles 5   --nom "Clk" --tipus rellotge   --nom "D[2]" --tipus estable --valors 0010Z   --nom "D[1]" --tipus estable --valors 1101Z   --nom "D[0]" --tipus estable --valors 10101   --sortida sortida.png --nom E --tipus estable --valors XX101   --nom "Q[2]" --tipus estable --valors "BBBBB"   --nom "Q[1]" --tipus estable --valors "BBBBB"   --nom "Q[0]" --tipus estable --valors "BBBBB"   --sortida exemple.png
 ```
 
 ## Creació d'entorn virtual amb biblioteques
@@ -41,14 +42,35 @@ source venv/bin/activate
 pip install matplotlib numpy
 ```
 
-## Execució
+## Ajuda
 
 ```
-python3 programa.py --titol "Demo" --cicles 4 --nom Clk --tipus rellotge
+$ python3 cronogrames.py --help
+usage: cronogrames.py [-h] --titol TITOL --cicles CICLES [--sortida SORTIDA] [--nom NOM] [--tipus TIPUS]
+                      [--valors VALORS] [--transicio TRANSICIO]
+
+Generador de cronogrames digitals parametritzable.
+
+options:
+  -h, --help            show this help message and exit
+  --titol TITOL         Títol del cronograma
+  --cicles CICLES       Nombre de cicles
+  --sortida SORTIDA     Ruta per guardar la imatge generada
+  --nom NOM             Nom de la senyal
+  --tipus TIPUS         Tipus: rellotge, complet, custom, estable
+  --valors VALORS       Cadena de bits per la senyal (0,1,X,Z,B)
+  --transicio TRANSICIO Transicions separades per ';' per tipus custom
+
+Exemple d'ús:
+  programa.py --titol "Cronograma EP/SP" --cicles 5 \
+    --nom "Clk" --tipus rellotge \
+    --nom "D[2]" --tipus estable --valors 0X1Z0 \
+    --nom "D[1]" --tipus estable --valors 1B110 \
+    --nom "D[0]" --tipus estable --valors 11X0Z \
+    --sortida sortida.png
 ```
 
 ## Autor
 
 **Angel Galindo Muñoz + Copilot**  
 Febrer 2026
-
