@@ -31,7 +31,16 @@ Permet crear cronogrames complexos de forma ràpida i automàtica a partir de pa
 
 Aquesta comanda ha generat la imatge d'exemple:
 ```
-python3 ./cronogrames.py --titol "Cronograma purament demostratiu"   --cicles 5   --nom "Clk" --tipus rellotge   --nom "D[2]" --tipus estable --valors 0010Z   --nom "D[1]" --tipus estable --valors 1101Z   --nom "D[0]" --tipus estable --valors 10101   --sortida sortida.png --nom E --tipus estable --valors XX101   --nom "Q[2]" --tipus estable --valors "BBBBB"   --nom "Q[1]" --tipus estable --valors "BBBBB"   --nom "Q[0]" --tipus estable --valors "BBBBB"   --sortida exemple.png
+python3 ./cronogrames.py --titol "Cronograma purament demostratiu" \
+        --cicles 5   --nom "Clk" --tipus rellotge \
+        --nom "D[2]" --tipus estable --valors "0010Z" \
+        --nom "D[1]" --tipus estable --valors "1101Z" \
+        --nom "D[0]" --tipus estable --valors "10101" \
+        --nom "E"    --tipus estable --valors "XX101" \
+        --nom "Q[2]" --tipus estable --valors "BBBBB" \
+        --nom "Q[1]" --tipus estable --valors "BBBBB" \
+        --nom "Q[0]" --tipus estable --valors "BBBBB" \
+        --sortida exemple.png
 ```
 
 ## Creació d'entorn virtual amb biblioteques
