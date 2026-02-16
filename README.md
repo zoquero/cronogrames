@@ -6,6 +6,8 @@ El programa genera una imatge amb línies digitals (0/1), indeterminacions (X), 
 
 Permet crear cronogrames complexos de forma ràpida i automàtica a partir de paràmetres donats per línia de comandes.
 
+![Exemple de cronograma](./exemple.png)
+
 ## Característiques principals
 
 - ✔ Generació d’un o més senyals digitals al llarg d’un nombre arbitrari de cicles  
