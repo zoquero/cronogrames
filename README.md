@@ -36,63 +36,103 @@ Febrer 2026
 
 Aquesta comanda ha generat la imatge d'exemple:
 ```
-python3 ./cronogrames.py --titol "Cronograma purament demostratiu" \
-        --cicles 5   --nom "Clk" --tipus rellotge \
-        --nom "D[2]" --tipus estable --valors "0010Z" \
-        --nom "D[1]" --tipus estable --valors "1101Z" \
-        --nom "D[0]" --tipus estable --valors "10101" \
-        --nom "E"    --tipus estable --valors "XX101" \
-        --nom "Q[2]" --tipus estable --valors "BBBBB" \
-        --nom "Q[1]" --tipus estable --valors "BBBBB" \
-        --nom "Q[0]" --tipus estable --valors "BBBBB" \
-        --sortida exemple.png
+python3 ./cronogrames.devel2.py --titol "Cronograma demostratiu"  \
+  --cicles 3 --sortida "/tmp/exemple.png"                         \
+  --nom "Tipus Clk"       --tipus "rellotge"                      \
+  --nom "Tipus constant " --tipus "complet"  --valors "X01"       \
+  --nom "Tipus estable"   --tipus "estable"  --valors "Z1B0"      \
+  --nom "Tipus custom_1"  --tipus "custom_1" --valors "0101"      \
+        --transicio "0.2;0.3;0.4"                                 \
+  --nom "Tipus custom_n"  --tipus "custom_n" --valors "0101X1Z10" \
+        --transicio "0.05;0.95;1.05;1.333;1.666;2;2.45;2.55;"
 ```
 
 ## Ajuda
 
 ```
+$ python3 ./cronogrames.py --help
 usage: cronogrames.py [-h] --titol TITOL --cicles CICLES [--sortida SORTIDA] [--nom NOM] [--tipus TIPUS]
                       [--valors VALORS] [--transicio TRANSICIO]
 
 Generador de cronogrames digitals parametritzable.
 
-Notes sobre longitud de valors per a 'custom' i 'estable':
-  - La longitud de la cadena de valors pot ser igual a N (= --cicles)
-    o igual a N+1.
-  - Si és N: l’últim interval es manté estable (sense transicions internes).
-  - Si és N+1: el valor extra permet una transició dins de l’últim interval
-    (entre N-1 i N), igual que a la resta d’intervals. El cronograma no
-    s’allarga i acaba a t = N.
-  - Per al tipus 'custom', el nombre de transicions ha de ser len(valors)-1.
-    Cada transició és un nombre en [0,1), separat per ';', i representa el
-    moment relatiu dins de cada interval i→i+1.
+Tipus de senyal admesos:
+  - rellotge   : alternança 1/0 cada meitat de període.
+  - complet    : canvis només a frontera de cicle si el valor canvia.
+  - estable    : canvis situats 'prop' (al·leatòriament)
+                 del final de cada interval, si el valor canvia.
+                 Accepta len(valors)=N o N+1.
+  - custom_1   : Una transició per interval i→i+1,
+                 transicions RELATIVES dins l’interval, en [0,1).
+                 Requereix paràmetre --transicio
+                 definint els instants de les transicions.
+                 Requereix len(valors)=N o N+1.
+  - custom_n   : senyal totalment a mida, longitud arbitrària.
+                 Les transicions són EN TEMPS ABSOLUT, una per canvi de
+                 valor, definides des de t=0. No hi ha periodicitat.
+
+Valors del senyal (caràcter per mostra):
+  0 / 1  : nivells digitals.
+  X      : indeterminat (hachurat).
+  Z      : alta impedància (patró 'Z' repetit).
+  B      : buit (no es dibuixa res).
+
+Longitud de valors (custom_1 i estable):
+  - Si la longitud és N (= --cicles), l’últim interval resta estable.
+  - Si és N+1, el valor extra permet una transició dins de l’últim
+    interval, sense allargar el cronograma.
+
+Transicions:
+  - custom_1 → transicions relatives dins de cada interval (0 ≤ τ < 1).
+  - custom_n → transicions absolutes des de t=0 (N-1 transicions per N valors).
+
+Durada i eix temporal:
+  - L’eix X va de 0 a N, sent N els cicles indicats.
+  - Els senyals es retallen sempre a t = N.
+  - Període fix d’1.0 unitat.
+
+Requisits:
+  - Cal que hi hagi almenys un senyal de tipus 'rellotge'.
+  - Cada bloc de --nom ha de portar el seu --tipus.
 
 options:
   -h, --help            show this help message and exit
-  --titol TITOL         Títol del cronograma
-  --cicles CICLES       Nombre de cicles (N)
-  --sortida SORTIDA     Ruta per guardar la imatge generada
-  --nom NOM             Nom de la senyal
-  --tipus TIPUS         Tipus: rellotge, complet, custom, estable
-  --valors VALORS       Cadena de bits per la senyal (0,1,X,Z,B)
+  --titol TITOL         Títol del cronograma.
+  --cicles CICLES       Nombre de cicles (N).
+  --sortida SORTIDA     Fitxer de sortida (PNG, SVG, etc.).
+  --nom NOM             Nom de la senyal (es pot repetir).
+  --tipus TIPUS         Tipus: rellotge, complet, custom_1, custom_n, estable.
+  --valors VALORS       Cadena de valors (0,1,X,Z,B).
   --transicio TRANSICIO
-                        Transicions separades per ';' per tipus custom (valors en [0,1))
+                        Transicions separades per ';'. RELATIUS per custom_1, ABSOLUTS per custom_n.
 
-Exemple d'ús:
-  programa.py --titol "Cronograma EP/SP" --cicles 5 \
+Exemples:
+
+  # Ex. amb custom_1 (relatiu)
+  programa.py --titol "Demo" --cicles 5 \
     --nom "Clk" --tipus rellotge \
-    --nom "D[2]" --tipus estable --valors 0X1Z0 \
-    --nom "D[1]" --tipus estable --valors 1B110 \
-    --nom "D[0]" --tipus custom  --valors 010100 --transicio 0.4;0.6;0.3;0.7;0.25 \
-    --sortida sortida.png
+    --nom "D0" --tipus custom_1 --valors 010100 \
+    --transicio "0.4;0.6;0.3;0.7;0.25" \
+    --sortida out1.png
 
-En l'exemple, D[0] té 6 valors amb --cicles 5: la darrera transició ocorre
-dins de l'últim interval (entre 4 i 5) sense allargar el cronograma.
+  # Ex. amb custom_n (absolut, no cíclic)
+  programa.py --titol "Senyal a mida" --cicles 3 \
+    --nom "Clk" --tipus rellotge \
+    --nom "S" --tipus custom_n --valors "0101010" \
+    --transicio "0.2;0.7;1.2;1.7;2.2;2.7" \
+    --sortida out2.png
+
+  # Ex. complet i estable
+  programa.py --titol "EP/SP" --cicles 5 \
+    --nom "Clk" --tipus rellotge \
+    --nom "D2" --tipus estable --valors 0X1Z0 \
+    --nom "D1" --tipus complet --valors 1B110 \
+    --sortida out3.png
 ```
 
-### Longitud de valors (custom i estable)
+### Aclariment sobre la longitud de valors
 
-Per als tipus `custom` i `estable`, la longitud de la cadena de valors pot ser:
+Per als tipus `estable`, `custom_1` i `custom_n` la longitud de la cadena de valors pot ser:
 
 - Igual al nombre de cicles (`--cicles N`)
 - Igual a `N + 1`

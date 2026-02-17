@@ -5,7 +5,7 @@
 # Creador de cronogrames
 #
 # Angel Galindo Muñoz + Copilot
-# 20260216
+# 20260216 (modificat: custom → custom_1, afegit custom_n)
 #
 
 import argparse
@@ -21,43 +21,29 @@ def parse_valors(bits: str):
     bits = bits.strip()
     if any(c not in "01XxZzBb" for c in bits):
         raise ValueError(f"Valors invàlids: {bits}")
-    # Normalitzem a majúscules: "0","1","X","Z","B"
     return [c.upper() for c in bits]
 
 
 def parse_transicions(txt: str):
-    # Retorna llista de floats a partir d'una cadena "a;b;c"
     return [float(p.strip()) for p in txt.split(";") if p.strip() != ""]
 
 
 def events_to_steps(initial, events, t_end):
-    """
-    Construeix vectors per dibuix "steps-post".
-    - initial: valor inicial
-    - events: llista de tuples (t, nou_valor)
-    - t_end: temps final de la seqüència (no es dibuixa més enllà)
-    """
-    # Ordenem esdeveniments per temps
     ordered = sorted(events, key=lambda e: e[0])
 
-    # Construcció dels vectors x/y
     x = [0.0]
     y = [initial]
     cur = initial
 
     for t, val in ordered:
         if t < 0 or t > t_end:
-            # Ignorem esdeveniments fora de la finestra
             continue
-        # mantenim el valor vigent fins a "t"
         x.append(t)
         y.append(cur)
-        # canviem a "val" a l'instant "t"
         cur = val
         x.append(t)
         y.append(cur)
 
-    # Tanquem fins a t_end si cal
     if x[-1] < t_end:
         x.append(t_end)
         y.append(cur)
@@ -70,13 +56,8 @@ def events_to_steps(initial, events, t_end):
 # ---------------------------------------------------------------------
 
 def senyal_rellotge(ncicles, periode=1.0):
-    """
-    Clock correcte:
-    - Primera meitat ALT
-    - Segona meitat BAIX
-    """
     events = []
-    cur = 1   # Comença ALT
+    cur = 1
     t = 0.5 * periode
 
     for _ in range(2 * ncicles):
@@ -88,11 +69,6 @@ def senyal_rellotge(ncicles, periode=1.0):
 
 
 def senyal_complet(valors, ncicles, periode=1.0):
-    """
-    Comportament actual (sense canvis):
-    - Intervals a frontera de cicle (canvi a i*periode si el valor a i difereix del valor a i-1)
-    - No s'implanta cap transició interna especial a l’últim interval.
-    """
     maxc = min(ncicles, len(valors))
     events = []
     for i in range(1, maxc):
@@ -102,10 +78,6 @@ def senyal_complet(valors, ncicles, periode=1.0):
 
 
 def _valida_llargada_valors(ncicles: int, valors: list, tipus: str):
-    """
-    Per als tipus 'custom' i 'estable', acceptem len(valors) == ncicles o == ncicles+1.
-    Si no, llencem error clar.
-    """
     n = len(valors)
     if n not in (ncicles, ncicles + 1):
         raise ValueError(
@@ -114,37 +86,26 @@ def _valida_llargada_valors(ncicles: int, valors: list, tipus: str):
         )
 
 
-def senyal_custom(valors, transicions, ncicles, periode=1.0):
+def senyal_custom_1(valors, transicions, ncicles, periode=1.0):
     """
-    CUSTOM:
-    - Accepta len(valors) == ncicles  o  ncicles+1.
-    - El nombre de transicions requerides és len(valors) - 1:
-        * si len(valors) == ncicles     → transicions = ncicles-1
-        * si len(valors) == ncicles + 1 → transicions = ncicles
-    - Cada transició és relativa dins l'interval i→i+1 i ha d'estar dins [0,1).
-    - El waveform s'acaba a t_end = ncicles * periode (no s'allarga).
+    Antic 'custom'.
     """
-    _valida_llargada_valors(ncicles, valors, "custom")
+    _valida_llargada_valors(ncicles, valors, "custom_1")
 
     n_val = len(valors)
-    # intervals reals en base a valors: len(valors) - 1
-    intervals = min(ncicles, n_val - 1)  # mai més intervals que ncicles
+    intervals = min(ncicles, n_val - 1)
     esperades = n_val - 1
 
     if len(transicions) != esperades:
         raise ValueError(
-            f"[custom] Nombre de transicions incorrecte. "
-            f"Rebudes: {len(transicions)}; Esperades: {esperades} "
-            f"(sempre len(valors)-1)."
+            f"[custom_1] Nombre de transicions incorrecte. Rebudes {len(transicions)}, esperades {esperades}."
         )
 
-    # Validació de rang [0,1) per a totes les transicions utilitzades
     for i in range(intervals):
         tau = transicions[i]
         if not (0.0 <= tau < 1.0):
             raise ValueError(
-                f"[custom] Transició {i} fora de rang: {tau}. "
-                f"Cal 0 ≤ τ < 1 dins l'interval {i}→{i+1}."
+                f"[custom_1] Transició {i} fora de rang: {tau}. Cal 0 ≤ τ < 1."
             )
 
     t_end = ncicles * periode
@@ -153,25 +114,39 @@ def senyal_custom(valors, transicions, ncicles, periode=1.0):
     for i in range(intervals):
         t0 = i * periode
         tau = transicions[i]
-        t = t0 + tau * periode
-        # Clamp perquè no superi el final de l'interval ni el final global
-        t = min(t, (i + 1) * periode)
-        t = min(t, t_end)
-        # Afegim el nou valor (post-transició) del punt i+1
+        t = min(t0 + tau * periode, t_end)
+        events.append((t, valors[i + 1]))
+
+    return events_to_steps(valors[0], events, t_end)
+
+
+def senyal_custom_n(valors, transicions, ncicles, periode=1.0):
+    """
+    CUSTOM_N:
+    - valors = qualsevol longitud >= 1
+    - transicions = N-1, temps absoluts
+    - t_end = ncicles * periode
+    """
+    n_val = len(valors)
+    esperades = n_val - 1
+
+    if len(transicions) != esperades:
+        raise ValueError(
+            f"[custom_n] Nombre de transicions incorrecte. Rebudes {len(transicions)}, esperades {esperades}."
+        )
+
+    t_end = ncicles * periode
+    events = []
+
+    for i in range(esperades):
+        t = float(transicions[i])
+        t = max(0, min(t, t_end))
         events.append((t, valors[i + 1]))
 
     return events_to_steps(valors[0], events, t_end)
 
 
 def senyal_estable(valors, ncicles, periode=1.0, rng=None):
-    """
-    ESTABLE:
-    - Accepta len(valors) == ncicles  o  ncicles+1.
-    - Genera canvis 'estables' (lleugerament abans del flanc del següent interval)
-      només quan el valor canvia entre v[i] i v[i+1].
-    - Si hi ha valor extra (ncicles+1), també pot haver-hi canvi dins l’últim interval.
-    - El waveform s'acaba a t_end = ncicles * periode (no s'allarga).
-    """
     if rng is None:
         rng = np.random.default_rng()
 
@@ -184,33 +159,25 @@ def senyal_estable(valors, ncicles, periode=1.0, rng=None):
 
     for i in range(intervals):
         if valors[i] != valors[i + 1]:
-            # situem el canvi 'abans' del límit de l'interval
             t1 = (i + 1) * periode
-            # delta en [0.2, 0.5] del periode, però assegurem no trepitjar t0
             delta = rng.uniform(0.2, 0.5) * periode
             t = max(i * periode, t1 - delta)
-            t = min(t, t1)     # clamp dins de l’interval
-            t = min(t, t_end)  # i dins del temps global
+            t = min(t, t1)
+            t = min(t, t_end)
             events.append((t, valors[i + 1]))
 
     return events_to_steps(valors[0], events, t_end)
 
 
 # ---------------------------------------------------------------------
-# AJUDA / ÚTILS
+# AJUDA / VALORS ESPECIALS
 # ---------------------------------------------------------------------
 
-def _is_X(v):
-    return isinstance(v, str) and v == "X"
-
-def _is_Z(v):
-    return isinstance(v, str) and v == "Z"
-
-def _is_B(v):
-    return isinstance(v, str) and v == "B"
+def _is_X(v): return isinstance(v, str) and v == "X"
+def _is_Z(v): return isinstance(v, str) and v == "Z"
+def _is_B(v): return isinstance(v, str) and v == "B"
 
 def _is_num(v):
-    # Considerem numèrics només 0 i 1 (admesos com "0"/"1" o enters)
     if isinstance(v, int):
         return v in (0, 1)
     if isinstance(v, str):
@@ -218,7 +185,6 @@ def _is_num(v):
     return False
 
 def _to_num(v):
-    # Converteix "0"/"1" a int; es crida només si _is_num(v) és True
     return int(v) if isinstance(v, str) else v
 
 
@@ -234,7 +200,6 @@ def dibuixa(waves, titol, ncicles, periode=1.0, output=None, tipus_originals=Non
 
     fig.suptitle(titol, fontsize=14)
 
-    # Pintar senyals (interval a interval)
     for ax, (nom, x, y) in zip(axes, waves):
         n = len(y)
 
@@ -243,11 +208,9 @@ def dibuixa(waves, titol, ncicles, periode=1.0, output=None, tipus_originals=Non
             v = y[i]
 
             if _is_B(v):
-                # "B" → cap valor: NO pintar res
                 continue
 
             if _is_X(v):
-                # "X" → indeterminació: hatching amb /// (diagonal cap a dreta)
                 ax.fill_between(
                     [t0, t1],
                     1.2, -0.2,
@@ -260,18 +223,11 @@ def dibuixa(waves, titol, ncicles, periode=1.0, output=None, tipus_originals=Non
                 continue
 
             if _is_Z(v):
-                # "Z" → alta impedància:
-                # Mostrar una seqüència contínua " - - Z - - Z - - Z ..."
-                # durant tota la durada del tram, centrada i retallada.
-
                 base_fs = plt.rcParams.get("font.size", 10.0)
-                fs = base_fs * 1.8   # +80% mida de font
-
-                # Patró repetit llarg
+                fs = base_fs * 1.8
                 pattern = " Z"
-                repeated = pattern * 200   # suficient per omplir qualsevol tram
+                repeated = pattern * 200
 
-                # Clip rectangle: EXACTE als límits del tram Z
                 clip_rect = plt.Rectangle(
                     (t0, -0.2),
                     t1 - t0,
@@ -281,7 +237,6 @@ def dibuixa(waves, titol, ncicles, periode=1.0, output=None, tipus_originals=Non
                 ax.add_patch(clip_rect)
                 clip_rect.set_visible(False)
 
-                # Text centrat
                 txt = ax.text(
                     (t0 + t1) / 2,
                     0.5,
@@ -293,14 +248,10 @@ def dibuixa(waves, titol, ncicles, periode=1.0, output=None, tipus_originals=Non
                     alpha=0.95,
                     clip_on=True
                 )
-
-                # Aplicar clip perquè no es surtin caràcters de l'interval
                 txt.set_clip_path(clip_rect)
-
                 continue
 
             if _is_num(v):
-                # 0/1 → línia blava
                 val = _to_num(v)
                 ax.plot(
                     [t0, t1],
@@ -311,35 +262,26 @@ def dibuixa(waves, titol, ncicles, periode=1.0, output=None, tipus_originals=Non
                 )
                 continue
 
-            # Si arribem aquí, és un valor no previst (no hauria de passar)
-            # Ens assegurem de no dibuixar res.
-            continue
-
-        # Línia vertical de transició per a canvis 0 <-> 1 (només quan tots dos són numèrics)
         for i in range(1, n):
             v_prev, v_cur = y[i - 1], y[i]
             if _is_num(v_prev) and _is_num(v_cur) and (_to_num(v_prev) != _to_num(v_cur)):
                 t = x[i]
-                y0, y1 = min(_to_num(v_prev), _to_num(v_cur)), max(_to_num(v_prev), _to_num(v_cur))
+                y0, y1 = sorted([_to_num(v_prev), _to_num(v_cur)])
                 ax.vlines(t, y0, y1, colors='C0', linewidth=2)
 
-        # Ajustos visuals del panell
         ax.set_ylabel(nom, rotation=0, labelpad=30, va='center')
         ax.set_yticks([0, 1])
         ax.set_ylim(-0.4, 1.4)
         ax.grid(True, axis="y", linestyle=":", alpha=0.5)
 
     axes[-1].set_xlabel("Temps (cicles)")
-
     ticks = np.arange(0, ncicles + 1, 1)
     axes[-1].set_xticks(ticks)
     axes[-1].set_xticklabels([str(t) for t in ticks])
 
-    # Límits exactes del cronograma (sense marges)
     for ax in axes:
         ax.set_xlim(0, ncicles)
 
-    # Línies verticals de flanc de pujada del rellotge mestre
     rellotge_x = None
     rellotge_y = None
 
@@ -349,12 +291,13 @@ def dibuixa(waves, titol, ncicles, periode=1.0, output=None, tipus_originals=Non
             break
 
     if rellotge_x is not None:
-        flancs_pujada = []
+        flancs = []
         for i in range(1, len(rellotge_y)):
-            if _is_num(rellotge_y[i - 1]) and _is_num(rellotge_y[i]) and (_to_num(rellotge_y[i - 1]) == 0 and _to_num(rellotge_y[i]) == 1):
-                flancs_pujada.append(rellotge_x[i])
+            if _is_num(rellotge_y[i - 1]) and _is_num(rellotge_y[i]) \
+               and _to_num(rellotge_y[i - 1]) == 0 and _to_num(rellotge_y[i]) == 1:
+                flancs.append(rellotge_x[i])
 
-        for t in flancs_pujada:
+        for t in flancs:
             for ax in axes:
                 ax.axvline(t, color="gray", linestyle="--", linewidth=0.5, alpha=0.4)
 
@@ -375,39 +318,76 @@ def main():
     parser = argparse.ArgumentParser(
         description=(
             "Generador de cronogrames digitals parametritzable.\n\n"
-            "Notes sobre longitud de valors per a 'custom' i 'estable':\n"
-            "  - La longitud de la cadena de valors pot ser igual a N (= --cicles)\n"
-            "    o igual a N+1.\n"
-            "  - Si és N: l’últim interval es manté estable (sense transicions internes).\n"
-            "  - Si és N+1: el valor extra permet una transició dins de l’últim interval\n"
-            "    (entre N-1 i N), igual que a la resta d’intervals. El cronograma no\n"
-            "    s’allarga i acaba a t = N.\n"
-            "  - Per al tipus 'custom', el nombre de transicions ha de ser len(valors)-1.\n"
-            "    Cada transició és un nombre en [0,1), separat per ';', i representa el\n"
-            "    moment relatiu dins de cada interval i→i+1."
+            "Tipus de senyal admesos:\n"
+            "  - rellotge   : alternança 1/0 cada meitat de període.\n"
+            "  - complet    : canvis només a frontera de cicle si el valor canvia.\n"
+            "  - estable    : canvis situats 'prop' (al·leatòriament)\n"
+            "                 del final de cada interval, si el valor canvia.\n"
+            "                 Accepta len(valors)=N o N+1.\n"
+            "  - custom_1   : Una transició per interval i→i+1,\n"
+            "                 transicions RELATIVES dins l’interval, en [0,1).\n"
+            "                 Requereix paràmetre --transicio\n"
+            "                 definint els instants de les transicions.\n"
+            "                 Requereix len(valors)=N o N+1.\n"
+            "  - custom_n   : senyal totalment a mida, longitud arbitrària.\n"
+            "                 Les transicions són EN TEMPS ABSOLUT, una per canvi de\n"
+            "                 valor, definides des de t=0. No hi ha periodicitat.\n\n"
+            "Valors del senyal (caràcter per mostra):\n"
+            "  0 / 1  : nivells digitals.\n"
+            "  X      : indeterminat (hachurat).\n"
+            "  Z      : alta impedància (patró 'Z' repetit).\n"
+            "  B      : buit (no es dibuixa res).\n\n"
+            "Longitud de valors (custom_1 i estable):\n"
+            "  - Si la longitud és N (= --cicles), l’últim interval resta estable.\n"
+            "  - Si és N+1, el valor extra permet una transició dins de l’últim\n"
+            "    interval, sense allargar el cronograma.\n\n"
+            "Transicions:\n"
+            "  - custom_1 → transicions relatives dins de cada interval (0 ≤ τ < 1).\n"
+            "  - custom_n → transicions absolutes des de t=0 (N-1 transicions per N valors).\n\n"
+            "Durada i eix temporal:\n"
+            "  - L’eix X va de 0 a N, sent N els cicles indicats.\n"
+            "  - Els senyals es retallen sempre a t = N.\n"
+            "  - Període fix d’1.0 unitat.\n\n"
+            "Requisits:\n"
+            "  - Cal que hi hagi almenys un senyal de tipus 'rellotge'.\n"
+            "  - Cada bloc de --nom ha de portar el seu --tipus.\n"
         ),
         epilog=(
-            "Exemple d'ús:\n"
-            "  programa.py --titol \"Cronograma EP/SP\" --cicles 5 \\\n"
+            "Exemples:\n\n"
+            "  # Ex. amb custom_1 (relatiu)\n"
+            "  programa.py --titol \"Demo\" --cicles 5 \\\n"
             "    --nom \"Clk\" --tipus rellotge \\\n"
-            "    --nom \"D[2]\" --tipus estable --valors 0X1Z0 \\\n"
-            "    --nom \"D[1]\" --tipus estable --valors 1B110 \\\n"
-            "    --nom \"D[0]\" --tipus custom  --valors 010100 --transicio 0.4;0.6;0.3;0.7;0.25 \\\n"
-            "    --sortida sortida.png\n\n"
-            "En l'exemple, D[0] té 6 valors amb --cicles 5: la darrera transició ocorre\n"
-            "dins de l'últim interval (entre 4 i 5) sense allargar el cronograma."
+            "    --nom \"D0\" --tipus custom_1 --valors 010100 \\\n"
+            "    --transicio \"0.4;0.6;0.3;0.7;0.25\" \\\n"
+            "    --sortida out1.png\n\n"
+            "  # Ex. amb custom_n (absolut, no cíclic)\n"
+            "  programa.py --titol \"Senyal a mida\" --cicles 3 \\\n"
+            "    --nom \"Clk\" --tipus rellotge \\\n"
+            "    --nom \"S\" --tipus custom_n --valors \"0101010\" \\\n"
+            "    --transicio \"0.2;0.7;1.2;1.7;2.2;2.7\" \\\n"
+            "    --sortida out2.png\n\n"
+            "  # Ex. complet i estable\n"
+            "  programa.py --titol \"EP/SP\" --cicles 5 \\\n"
+            "    --nom \"Clk\" --tipus rellotge \\\n"
+            "    --nom \"D2\" --tipus estable --valors 0X1Z0 \\\n"
+            "    --nom \"D1\" --tipus complet --valors 1B110 \\\n"
+            "    --sortida out3.png\n"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
-    parser.add_argument("--titol", required=True, help="Títol del cronograma")
-    parser.add_argument("--cicles", type=int, required=True, help="Nombre de cicles (N)")
-    parser.add_argument("--sortida", help="Ruta per guardar la imatge generada")
+    parser.add_argument("--titol", required=True, help="Títol del cronograma.")
+    parser.add_argument("--cicles", type=int, required=True, help="Nombre de cicles (N).")
+    parser.add_argument("--sortida", help="Fitxer de sortida (PNG, SVG, etc.).")
 
-    parser.add_argument("--nom", action="append", help="Nom de la senyal")
-    parser.add_argument("--tipus", action="append", help="Tipus: rellotge, complet, custom, estable")
-    parser.add_argument("--valors", action="append", help="Cadena de bits per la senyal (0,1,X,Z,B)")
-    parser.add_argument("--transicio", action="append", help="Transicions separades per ';' per tipus custom (valors en [0,1))")
+    parser.add_argument("--nom", action="append", help="Nom de la senyal (es pot repetir).")
+    parser.add_argument("--tipus", action="append", help="Tipus: rellotge, complet, custom_1, custom_n, estable.")
+    parser.add_argument("--valors", action="append", help="Cadena de valors (0,1,X,Z,B).")
+    parser.add_argument(
+        "--transicio",
+        action="append",
+        help="Transicions separades per ';'. RELATIUS per custom_1, ABSOLUTS per custom_n."
+    )
 
     args = parser.parse_args()
 
@@ -438,28 +418,36 @@ def main():
             x, y = senyal_rellotge(args.cicles, periode)
 
         elif tipus == "complet":
-            if not args.valors or idx_valors >= len(args.valors):
+            if idx_valors >= len(args.valors):
                 parser.error(f"[{nom}] Falta --valors per al tipus 'complet'.")
             val = parse_valors(args.valors[idx_valors])
             idx_valors += 1
             x, y = senyal_complet(val, args.cicles, periode)
 
-        elif tipus == "custom":
-            if not args.valors or idx_valors >= len(args.valors):
-                parser.error(f"[{nom}] Falta --valors per al tipus 'custom'.")
-            if not args.transicio or idx_trans >= len(args.transicio):
-                parser.error(f"[{nom}] Falta --transicio per al tipus 'custom'.")
-
+        elif tipus == "custom_1":
+            if idx_valors >= len(args.valors):
+                parser.error(f"[{nom}] Falta --valors per al tipus 'custom_1'.")
+            if idx_trans >= len(args.transicio):
+                parser.error(f"[{nom}] Falta --transicio per al tipus 'custom_1'.")
             val = parse_valors(args.valors[idx_valors])
             trans = parse_transicions(args.transicio[idx_trans])
-
             idx_valors += 1
             idx_trans += 1
+            x, y = senyal_custom_1(val, trans, args.cicles, periode)
 
-            x, y = senyal_custom(val, trans, args.cicles, periode)
+        elif tipus == "custom_n":
+            if idx_valors >= len(args.valors):
+                parser.error(f"[{nom}] Falta --valors per al tipus 'custom_n'.")
+            if idx_trans >= len(args.transicio):
+                parser.error(f"[{nom}] Falta --transicio per al tipus 'custom_n'.")
+            val = parse_valors(args.valors[idx_valors])
+            trans = parse_transicions(args.transicio[idx_trans])
+            idx_valors += 1
+            idx_trans += 1
+            x, y = senyal_custom_n(val, trans, args.cicles, periode)
 
         elif tipus == "estable":
-            if not args.valors or idx_valors >= len(args.valors):
+            if idx_valors >= len(args.valors):
                 parser.error(f"[{nom}] Falta --valors per al tipus 'estable'.")
             val = parse_valors(args.valors[idx_valors])
             idx_valors += 1
