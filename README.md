@@ -36,7 +36,7 @@ Febrer 2026
 
 Aquesta comanda ha generat la imatge d'exemple:
 ```
-python3 ./cronogrames.devel2.py --titol "Cronograma demostratiu"  \
+python3 ./cronogrames.py --titol "Cronograma demostratiu"  \
   --cicles 3 --sortida "/tmp/exemple.png"                         \
   --nom "Tipus Clk"       --tipus "rellotge"                      \
   --nom "Tipus constant " --tipus "complet"  --valors "X01"       \
