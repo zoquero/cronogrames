@@ -22,6 +22,7 @@ Febrer 2026
   - **estable** → transicions al·leatòriament entre 0.2 i 0.5 cicles abans del flanc de pujada
   - **complet** → canvis exactes a cada inici de cicle
   - **custom** → transicions definides manualment (per exemple "0.25;0.5;0.75" per transicions a un quart, mig i tres quarts de cicle)
+- ✔ Si un interval de **--valors** té més d'un caràcter (p. ex. "0101"), es representa amb **capsa hexagonal** amb el text centrat.
 - ✔ Suport per valors especials:
   - **0 / 1** → valors digitals estàndard
   - **X** → indeterminació (patró diagonal)
@@ -36,15 +37,20 @@ Febrer 2026
 
 Aquesta comanda ha generat la imatge d'exemple:
 ```
-python3 ./cronogrames.py --titol "Cronograma demostratiu"  \
-  --cicles 3 --sortida "/tmp/exemple.png"                         \
-  --nom "Tipus Clk"       --tipus "rellotge"                      \
-  --nom "Tipus constant " --tipus "complet"  --valors "X01"       \
-  --nom "Tipus estable"   --tipus "estable"  --valors "Z1B0"      \
-  --nom "Tipus custom_1"  --tipus "custom_1" --valors "0101"      \
-        --transicio "0.2;0.3;0.4"                                 \
-  --nom "Tipus custom_n"  --tipus "custom_n" --valors "0101X1Z10" \
-        --transicio "0.05;0.95;1.05;1.333;1.666;2;2.45;2.55;"
+python3 ./cronogrames.py --titol "Cronograma demostratiu"            \
+  --cicles 3 --sortida "/tmp/exemple_devel.png"                      \
+  --nom $'Tipus\nrellotge' --tipus "rellotge"                        \
+  --nom $'Tipus\ncomplet'  --tipus "complet"  --valors "X01"         \
+  --nom $'Tipus\nestable'  --tipus "estable"  --valors "Z1B0"        \
+  --nom $'Tipus\ncustom_1' --tipus "custom_1" --valors "0101"        \
+        --transicions "0.2;0.3;0.4"                                  \
+  --nom $'Tipus\ncustom_n' --tipus "custom_n" --valors "0101X1Z10"   \
+        --transicions "0.05;0.95;1.05;1.333;1.666;2;2.45;2.55;"      \
+  --nom $'Tipus\nestable'  --tipus "estable"                         \
+        --valors "XXXXXXXX;01010101;10101010"                        \
+  --nom $'Tipus\ncustom_n' --tipus "custom_n"                        \
+	--valors "XXXXXXXX;01010101;10101010;01010101;10101010;01010101" \
+        --transicions "0.55;0.95;1.333;1.666;2.555"
 ```
 
 ## Ajuda
@@ -52,7 +58,7 @@ python3 ./cronogrames.py --titol "Cronograma demostratiu"  \
 ```
 $ python3 ./cronogrames.py --help
 usage: cronogrames.py [-h] --titol TITOL --cicles CICLES [--sortida SORTIDA] [--nom NOM] [--tipus TIPUS]
-                      [--valors VALORS] [--transicio TRANSICIO]
+                      [--valors VALORS] [--transicions TRANSICIO]
 
 Generador de cronogrames digitals parametritzable.
 
@@ -64,14 +70,14 @@ Tipus de senyal admesos:
                  Accepta len(valors)=N o N+1.
   - custom_1   : Una transició per interval i→i+1,
                  transicions RELATIVES dins l’interval, en [0,1).
-                 Requereix paràmetre --transicio
+                 Requereix paràmetre --transicions
                  definint els instants de les transicions.
                  Requereix len(valors)=N o N+1.
   - custom_n   : senyal totalment a mida, longitud arbitrària.
                  Les transicions són EN TEMPS ABSOLUT, una per canvi de
                  valor, definides des de t=0. No hi ha periodicitat.
 
-Valors del senyal (caràcter per mostra):
+Valors del senyal (per interval):
   0 / 1  : nivells digitals.
   X      : indeterminat (hachurat).
   Z      : alta impedància (patró 'Z' repetit).
@@ -103,7 +109,7 @@ options:
   --nom NOM             Nom de la senyal (es pot repetir).
   --tipus TIPUS         Tipus: rellotge, complet, custom_1, custom_n, estable.
   --valors VALORS       Cadena de valors (0,1,X,Z,B).
-  --transicio TRANSICIO
+  --transicions TRANSICIO
                         Transicions separades per ';'. RELATIUS per custom_1, ABSOLUTS per custom_n.
 
 Exemples:
@@ -112,14 +118,14 @@ Exemples:
   programa.py --titol "Demo" --cicles 5 \
     --nom "Clk" --tipus rellotge \
     --nom "D0" --tipus custom_1 --valors 010100 \
-    --transicio "0.4;0.6;0.3;0.7;0.25" \
+    --transicions "0.4;0.6;0.3;0.7;0.25" \
     --sortida out1.png
 
   # Ex. amb custom_n (absolut, no cíclic)
   programa.py --titol "Senyal a mida" --cicles 3 \
     --nom "Clk" --tipus rellotge \
     --nom "S" --tipus custom_n --valors "0101010" \
-    --transicio "0.2;0.7;1.2;1.7;2.2;2.7" \
+    --transicions "0.2;0.7;1.2;1.7;2.2;2.7" \
     --sortida out2.png
 
   # Ex. complet i estable

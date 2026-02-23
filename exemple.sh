@@ -1,0 +1,14 @@
+python3 ./cronogrames.py --titol "Cronograma demostratiu"    \
+  --cicles 3 --sortida "/tmp/exemple_devel.png"                    \
+  --nom $'Tipus\nrellotge' --tipus "rellotge"                      \
+  --nom $'Tipus\ncomplet'  --tipus "complet"  --valors "X01"       \
+  --nom $'Tipus\nestable'  --tipus "estable"  --valors "Z1B0"      \
+  --nom $'Tipus\ncustom_1' --tipus "custom_1" --valors "0101"      \
+        --transicions "0.2;0.3;0.4"                                \
+  --nom $'Tipus\ncustom_n' --tipus "custom_n" --valors "0101X1Z10" \
+        --transicions "0.05;0.95;1.05;1.333;1.666;2;2.45;2.55;"    \
+  --nom $'Tipus\nestable'  --tipus "estable"                       \
+        --valors "XXXXXXXX;01010101;10101010"                      \
+  --nom $'Tipus\ncustom_n' --tipus "custom_n"                      \
+	--valors "XXXXXXXX;01010101;10101010;01010101;10101010;01010101" \
+        --transicions "0.55;0.95;1.333;1.666;2.555"
